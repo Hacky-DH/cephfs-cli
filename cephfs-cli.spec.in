@@ -1,0 +1,70 @@
+# spec file for cephfs-cli
+Name: cephfs-cli
+Version: @VERSION@
+Release: nr%{?dist}
+Summary: cephfs client
+License: GPL
+Group: System/Filesystems
+Prefix: /usr/local/cephfs-cli
+
+BuildRoot: @ROOT@/rpmbuildroot
+
+BuildRequires: gcc-c++ >= 4.8.5
+BuildRequires: make
+BuildRequires: gtest
+BuildRequires: swig
+BuildRequires: libcephfs-devel
+BuildRequires: libcephfs2
+
+%define _builddir @ROOT@
+%define _rpmdir @ROOT@
+%define _build_name_fmt %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm
+
+%description
+cephfs client
+
+%prep
+
+%build
+mkdir -p build
+cd build
+cmake -DCMAKE_INSTALL_PREFIX=%{prefix} ..
+make
+
+%install
+pushd build
+make DESTDIR=%{buildroot} install
+popd
+libdir=%{buildroot}%{prefix}/lib
+install -m 0755 -D cephfs-cli.py %{buildroot}%{prefix}/cephfs-cli.py
+install -m 0755 -D bin/cephfs-cli %{buildroot}%{prefix}/bin/cephfs-cli
+ln -rsf %{buildroot}%{prefix}/bin/cephfs-cli %{buildroot}%{prefix}/bin/cephcli
+
+/bin/rm -f ${libdir}/libcephfstool.a
+/bin/rm -rf %{buildroot}/usr/lib
+/bin/rm -rf %{buildroot}%{prefix}/include
+/bin/rm -rf %{buildroot}%{prefix}/sample
+
+libs=(libceph-common.so.0 libcephfs.so.2.0.0 libibverbs.so.1.1.15 libnl-3.so.200.23.0 libnl-route-3.so.200.23.0)
+alibs=(libceph-common.so libcephfs.so.2 libibverbs.so.1 libnl-3.so.200 libnl-route-3.so.200)
+for(( i=0;i<${#libs[@]};i++)); do
+    /bin/cp -af lib/${libs[i]} ${libdir}/${libs[i]}
+    ln -srf ${libdir}/${libs[i]} ${libdir}/${alibs[i]}
+done
+
+%files
+%{prefix}
+
+%pre
+
+%post
+sed -i "s#@CEPHFS_TOOL_PATH@#$RPM_INSTALL_PREFIX#" $RPM_INSTALL_PREFIX/cephfs-cli.py
+sed -i "s#@CEPHFS_TOOL_PATH@#$RPM_INSTALL_PREFIX#" $RPM_INSTALL_PREFIX/bin/cephfs-cli
+
+%preun
+
+%postun
+
+%clean
+/bin/rm -rf %{buildroot}
+

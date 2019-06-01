@@ -1,0 +1,12 @@
+#!/bin/bash
+set -e
+
+py=$(which python2 2>/dev/null)
+py=${py:-python}
+install_path=@CEPH_CLI_HOME@
+[[ ! -d ${install_path} ]] && install_path="."
+export CEPH_CLI_HOME=${install_path}
+export CEPH_CLI_VERSION=@CEPH_CLI_VERSION@
+export LD_LIBRARY_PATH=${install_path}/lib:$LD_LIBRARY_PATH
+$py ${install_path}/cephfs-cli.py -i ${install_path}/conf/user.info $*
+
